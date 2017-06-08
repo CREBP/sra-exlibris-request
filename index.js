@@ -28,11 +28,17 @@ function ExlibrisRequest(settings) {
 	/**
 	* Utility config merger
 	* This function merges the object settings with the given object
-	* @param {Object} config The new config to merge
+	* If a key + val is specified _.set() is used to set the single value, if an object is used it will be merged
+	* @param {Object|string} config The new config to merge
+	* @param {*} [value] Optional value if `config` is a string
 	* @return {Object} This chainable object
 	*/
-	er.set = function(config) {
-		_.merge(er.settings, config);
+	er.set = function(config, value) {
+		if (_.isObject(config)) {
+			_.merge(er.settings, config);
+		} else {
+			_.set(er.settings, config, value);
+		}
 
 		return er;
 	};
