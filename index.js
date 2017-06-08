@@ -10,18 +10,17 @@ function ExlibrisRequest(settings) {
 
 	er.settings = _.defaults(settings, {
 		exlibris: {
-			region: 'eu',
-			apiKey: '',
+			region: 'eu', // Which region to make the request from
+			apiKey: '', // API key for the Exlibis account
 		},
 		user: {
-			email: 'someone@somewhere.com',
+			email: 'someone@somewhere.com', // Email address lookup of the Exlibris user
 		},
-		request: {
-			pickup_location: 'MAIN',
-		},
+		request: {}, // Additional fields to send in request
+		validator: (ref, eRef) => true, // Validator function used to verify that a reference can be submitted. Should return either a boolean or a string (error message). Note, this occurs AFTER the field translation stage, so the fields are Exlibris and NOT Reflib spec. If you are mutating the object, mutate the Exlibris object (eRef)
 		debug: {
 			execRequest: false, // Set to false to disable requesting (i.e. dry-run mode), user details etc. are still retrieved but the request is not made
-			titleMangle: title => `[TEST ${(new Date).toISOString().substr(0, 10)}] ${title}`, // Title rewriter function. Set this to something to override the requested title for debugging purposes
+			titleMangle: title => title, // Title rewriter function. Set this to something to override the requested title for debugging purposes
 		},
 	});
 
