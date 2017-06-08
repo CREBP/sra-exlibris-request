@@ -7,6 +7,7 @@ var util = require('util');
 
 function ExlibrisRequest(settings) {
 	var er = this;
+	er.cacheContents = {}; // In-memory default cache
 
 	er.settings = _.defaults(settings, {
 		exlibris: {
@@ -21,6 +22,11 @@ function ExlibrisRequest(settings) {
 		debug: {
 			execRequest: false, // Set to false to disable requesting (i.e. dry-run mode), user details etc. are still retrieved but the request is not made
 			titleMangle: title => title, // Title rewriter function. Set this to something to override the requested title for debugging purposes
+		},
+		cache: {
+			enabled: true,
+			cacheGet: email => er.cacheContents[email],
+			cacheSet: (email, obj) => er.cacheContents[email] = obj,
 		},
 	});
 
@@ -129,12 +135,21 @@ function ExlibrisRequest(settings) {
 			// }}}
 			// Find the ExLibris user {{{
 			.then('user', function(next) {
+				// Try and pull from cache {{{
+				if (settings.cache.enabled) {
+					var ret = settings.cache.cacheGet(settings.user.email);
+					if (ret) return next(null, ret);
+				}
+				// }}}
+
 				this.exlibris.users.search({
 					limit: 1,
 					email: settings.user.email,
 				}, function(err, res) {
 					if (err) return next(err);
 					if (!res.length) return next(`No user found matching email "${settings.user.email}"`);
+
+					if (settings.cache.enabled) settings.cache.cacheSet(settings.user.email, res[0]);
 					next(null, res[0]);
 				});
 			})
