@@ -85,8 +85,13 @@ function ExlibrisRequest(settings) {
 			.then('resource', function(next) {
 				var res = {title: ''};
 				_.forEach(ref, (v, k) => {
-					if (!er.reflibExlibrisTranslations[k]) return; // Unknown field in the reflib reference
-					ref[er.reflibExlibrisTranslations[k]] = v;
+					if (!er.reflibExlibrisTranslations[k]) {
+						return; // Unknown field in the reflib reference
+					} else if (_.isFunction(er.reflibExlibrisTranslations[k])) { // Run via filter and return result
+						var ret = er.reflibExlibrisTranslations[k](ref, res);
+					} else { // Key -> Key mapping
+						res[er.reflibExlibrisTranslations[k]] = v;
+					}
 				});
 				next(null, res);
 			})
