@@ -2,7 +2,7 @@ var expect = require('chai').expect;
 var reflib = require('reflib');
 var sraExlibrisRequest = require('..');
 
-describe('sra-exlibris-request', function() {
+describe('request()', function() {
 
 	var er;
 	before('init sraExlibrisRequest object', ()=> er = new sraExlibrisRequest().set(require('./config')));
