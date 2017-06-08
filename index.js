@@ -51,7 +51,17 @@ function ExlibrisRequest(settings) {
 	* @var {Object}
 	*/
 	er.reflibExlibrisTranslations = {
+		// reflib => exlibris request field
 		title: 'title',
+		journal: 'journal_title',
+		pages: 'pages',
+		section: 'section',
+		volume: 'volume',
+		doi: 'doi',
+		isbn: 'isbn',
+		year: 'year',
+		language: 'language',
+		authors: (ref, eref) => eref.author = ref.authors.join(', '),
 	};
 
 
