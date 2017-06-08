@@ -96,6 +96,23 @@ function ExlibrisRequest(settings) {
 				next(null, res);
 			})
 			// }}}
+			// Validate the reference {{{
+			.then(function(next) {
+				if (!settings.validator) return next();
+
+				var result = settings.validator(ref, this.resource);
+				if (result === true) return next();
+
+				var humanRef =
+					ref.doi ? `DOI ${this.resource.doi}`
+					: ref.recNumber ? `Record #${this.resource.recNumber}`
+					: ref.isbn ? `ISBN ${this.resource.isbn}`
+					: ref.title ? `"${this.resource.title}"`
+					: 'Unnamed reference';
+
+				return next(`Validation failed for reference ${humanRef}` + (_.isString(result) ? ` - ${result}` : ''));
+			})
+			// }}}
 			// Debug mangling {{{
 			.then(function(next) {
 				if (settings.debug.titleMangle) this.resource.title = settings.debug.titleMangle(this.resource.title);
