@@ -13,6 +13,9 @@ function ExlibrisRequest(settings) {
 		exlibris: {
 			region: 'eu', // Which region to make the request from
 			apiKey: '', // API key for the Exlibis account
+			resourceRequestRetry: 10, // How many times to retry the request if we get back a fail
+			resourceRequestRetryDelay: attempt => _.random(0, 2000), // How long to delay between requests
+			threads: 2, // How many threads to run in parrallel during requestAll(), don't set this too high as Exlibris has a tendency to reject too many API hits
 		},
 		user: {
 			email: 'someone@somewhere.com', // Email address lookup of the Exlibris user
@@ -79,6 +82,10 @@ function ExlibrisRequest(settings) {
 	* @param {Object} [options] Additional overriding options to use (otherwise `settings` is used)
 	* @param {function} [cb] The callback to run on completion
 	* @return {Object} This chainable object
+	* @fires requestSucceed Event fired when a request succeeded. Called as ({ref, attempt})
+	* @fires requestRetry Event fired when a request fails but will be retried. Called as ({ref, attempt, tryAgainInTimeout})
+	* @fires requestFailed Event fired when a request fails after exhausing the number of retries. Called as ({ref, attempts})
+	* @fires requestError Event fired when a request is completely rejected by the server. Called as ({ref, err})
 	*/
 	er.request = argy('object [object] [function]', function(ref, options, cb) {
 		var settings = _.defaultsDeep(options, er.settings);
@@ -158,10 +165,33 @@ function ExlibrisRequest(settings) {
 			// }}}
 			// Make the request {{{
 			.then('response', function(next) {
-				if (!settings.execRequest) return next(null, {id: 'FAKE', response: 'execRequest is disabled!'});
+				var attempt = 0;
+				// Wrap the actual request in a function that we can retry until we're exhausted
+				// For some reason ExLibris will randomly reject requests even if their own internal setting is set to high thoughput, so its neccessary to deal with this weirdness by retrying until we're successful with some exponencial backoff
+				var attemptRequest = ()=> {
+					if (!settings.debug.execRequest) return next(null, {id: 'FAKE', response: 'execRequest is disabled!'});
 
-				return next('FIXME: Emergency stop!');
-				this.exlibris.resources.request(this.resource, this.user, settings.request);
+					this.exlibris.resources.request(this.resource, this.user, settings.request, (err, res) => {
+						if (err && err.status == 400 && !err.text) {
+							if (++attempt < settings.exlibris.resourceRequestRetry) { // Errored but we're still below retry threshold
+								var tryAgainInTimeout = settings.exlibris.resourceRequestRetryDelay(attempt);
+								er.emit('requestRetry', this.resource, attempt, tryAgainInTimeout);
+								setTimeout(()=> attemptRequest(), tryAgainInTimeout);
+							} else {
+								er.emit('requestFailed', this.resource, attempt);
+								next(`Failed after ${attempt} attempts - ${err.toString()}`);
+							}
+						} else if (err) {
+							er.emit('requestError', this.resource, err);
+							next(err);
+						} else {
+							er.emit('requestSucceed', this.resource, attempt);
+							next(null, res);
+						}
+					});
+				};
+
+				attemptRequest();
 			})
 			// }}}
 			// End {{{
@@ -186,10 +216,13 @@ function ExlibrisRequest(settings) {
 		var settings = _.defaultsDeep(options, er.settings);
 
 		async()
-			.forEach(refs, function(next, ref) {
-				er.request(ref, settings, cb);
+			.limit(settings.exlibris.threads)
+			.forEach(refs, function(nextRef, ref) {
+				er.request(ref, settings, nextRef);
 			})
 			.end(cb);
+
+		return this;
 	});
 };
 

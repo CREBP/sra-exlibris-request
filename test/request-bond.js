@@ -4,13 +4,13 @@
 */
 
 var expect = require('chai').expect;
+var mlog = require('mocha-logger');
 var reflib = require('reflib');
 var sraExlibrisRequest = require('..');
 
-describe('request() - Bond specific', function() {
-
-	var er;
-	before('init sraExlibrisRequest object', ()=> er = new sraExlibrisRequest()
+// Bond config {{{
+var setupBond = ()=>
+	new sraExlibrisRequest()
 		.set(require('./config'))
 		.set('debug.titleMangle', title => `[SRA TEST ${(new Date).toISOString()} - DO NOT ACCEPT] ${title}`)
 		.set('debug.execRequest', true)
@@ -54,23 +54,57 @@ describe('request() - Bond specific', function() {
 	it('should make a sample request (execRequest = false)', function(done) {
 		this.timeout(30 * 1000);
 
-		er.request(refs[0], {debug: {execRequest: false}}, function(err, res) {
-			expect(err).to.be.not.ok;
-			expect(res).to.be.deep.equal({id: 'FAKE', response: 'execRequest is disabled!'});
+		er
+			.request(refs[0], {debug: {execRequest: false}}, function(err, res) {
+				expect(err).to.be.not.ok;
+				expect(res).to.be.deep.equal({id: 'FAKE', response: 'execRequest is disabled!'});
 
+				done();
+			})
+			.on('requestRetry', (ref, attempt, tryAgainInTimeout) => mlog.log(`request failed (attempt #${attempt}) for "${ref.title}" retry in ${tryAgainInTimeout}ms`))
+	});
+
+	it('should make a request for one reference', function(done) {
+		this.timeout(30 * 1000);
+
+		er
+			.request(refs[0], function(err, res) {
+				expect(err).to.be.not.ok;
+				done();
+			})
+			.on('requestRetry', (ref, attempt, tryAgainInTimeout) => mlog.log(`request failed (attempt #${attempt}) for "${ref.title}" retry in ${tryAgainInTimeout}ms`))
+	});
+
+});
+
+describe('requestAll() - Bond specific', function() {
+
+	var er;
+	before('init sraExlibrisRequest object', ()=> er = setupBond());
+
+	var refs;
+	before('fetch example references', function(done) {
+		this.timeout(30 * 1000);
+		reflib.parseFile('./test/data/endnote-md.xml', function(err, res) {
+			if (err) return done(err);
+			refs = res;
 			done();
 		});
 	});
 
-	it.skip('should make a request for one reference', function(done) {
-		this.timeout(30 * 1000);
+	it('should make a request for the next 20 references', function(done) {
+		this.timeout(60 * 1000);
 
-		er.request(refs[0], function(err, res) {
-			expect(err).to.be.not.ok;
-			console.log('GOT', res);
+		er
+			.requestAll(refs.slice(0, 20), function(err, res) {
+				expect(err).to.be.not.ok;
+				done();
+			})
+			.on('requestRetry', (ref, attempt, tryAgainInTimeout) => mlog.log(`request refused (attempt #${attempt}) for "${ref.title}" retry in ${tryAgainInTimeout}ms`))
+			.on('requestFailed', (ref, attempt) => mlog.log(`request completely failed (after #${attempt} attempts) for "${ref.title}" - giving up`))
+			.on('requestSucceed', (ref, attempt) => mlog.log(`request success for "${ref.title}"`))
+			.on('requestError', (ref, err) => mlog.log(`request error for "${ref.title}" - ${err.toString()} ` + (err.text ? `(has response text: "${err.text}")` : '(no response reason given)')))
 
-			done();
-		});
 	});
 
 });
