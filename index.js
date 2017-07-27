@@ -1,7 +1,7 @@
 var _ = require('lodash');
 var argy = require('argy');
 var async = require('async-chainable');
-var exlibris = require('/media/LinuxSSD/Projects/Node/exlibris');
+var exlibris = require('exlibris');
 var events = require('events');
 var util = require('util');
 
