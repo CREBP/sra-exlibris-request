@@ -20,7 +20,7 @@ function ExlibrisRequest(settings) {
 		user: {
 			email: 'someone@somewhere.com', // Email address lookup of the Exlibris user
 		},
-		request: {}, // Additional fields to send in request
+		request: {}, // Additional fields to send in request. These will override any incomming request fields
 		validator: (ref, eRef) => true, // Validator function used to verify that a reference can be submitted. Should return either a boolean or a string (error message). Note, this occurs AFTER the field translation stage, so the fields are Exlibris and NOT Reflib spec. If you are mutating the object, mutate the Exlibris object (eRef)
 		debug: {
 			execRequest: false, // Set to false to disable requesting (i.e. dry-run mode), user details etc. are still retrieved but the request is not made
@@ -171,7 +171,7 @@ function ExlibrisRequest(settings) {
 				var attemptRequest = ()=> {
 					if (!settings.debug.execRequest) return next(null, {id: 'FAKE', response: 'execRequest is disabled!'});
 
-					this.exlibris.resources.request(this.resource, this.user, settings.request, (err, res) => {
+					this.exlibris.resources.request(_.assign({}, this.resource, settings.request), this.user, settings.request, (err, res) => {
 						if (err && err.status == 400 && !err.text) {
 							if (++attempt < settings.exlibris.resourceRequestRetry) { // Errored but we're still below retry threshold
 								var tryAgainInTimeout = settings.exlibris.resourceRequestRetryDelay(attempt);
