@@ -20,13 +20,12 @@ var setupBond = ()=>
 			if (!ref.type) return 'No reference type specified';
 			if (ref.type == 'book') {
 				if (!eref.title) return 'Missing book title';
-				if (!eref.journal) return 'Missing journal';
 				eref.pickup_location = 'MAIN',
 				eref.format = 'PHYSICAL';
 				eref.citation_type = 'BK';
 			} else if (ref.type == 'bookSection') {
 				if (!eref.title) return 'Missing book title';
-				if (!eref.pages || !eref.section) return 'Missing book section or pages';
+				if (!eref.pages && !eref.section) return 'Missing book section or pages';
 				eref.format = 'DIGITAL';
 				eref.citation_type = 'BK';
 			} else if (ref.type == 'conferencePaper') {
@@ -39,12 +38,17 @@ var setupBond = ()=>
 				eref.citation_type = 'CR';
 			}
 			return true;
-		})
-	);
+		});
+// }}}
+
+describe.skip('request() - Bond specific', function() {
+
+	var er;
+	before('init sraExlibrisRequest object', ()=> er = setupBond());
 
 	var refs;
 	before('fetch example references', done => {
-		reflib.parseFile('./test/data/endnote-sm.xml', function(err, res) {
+		reflib.parseFile('./test/data/endnote-md.xml', function(err, res) {
 			if (err) return done(err);
 			refs = res;
 			done();
@@ -68,7 +72,7 @@ var setupBond = ()=>
 		this.timeout(30 * 1000);
 
 		er
-			.request(refs[0], function(err, res) {
+			.request(refs.filter(r => r.type == 'book')[0], function(err, res) {
 				expect(err).to.be.not.ok;
 				done();
 			})
@@ -92,11 +96,11 @@ describe('requestAll() - Bond specific', function() {
 		});
 	});
 
-	it('should make a request for the next 20 references', function(done) {
-		this.timeout(60 * 1000);
+	it('should make a request for all references', function(done) {
+		this.timeout(60 * 60 * 1000);
 
 		er
-			.requestAll(refs.slice(0, 20), function(err, res) {
+			.requestAll(refs, function(err, res) {
 				expect(err).to.be.not.ok;
 				done();
 			})
