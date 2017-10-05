@@ -12,7 +12,7 @@ var sraExlibrisRequest = require('..');
 var setupBond = ()=>
 	new sraExlibrisRequest()
 		.set(require('./config'))
-		.set('debug.titleMangle', title => `[SRA TEST ${(new Date).toISOString()} - DO NOT ACCEPT] ${title}`)
+		.set('debug.titleMangle', title => `[SRA TEST ${(new Date).toISOString()} - LIVE-1] ${title}`)
 		.set('debug.execRequest', true)
 		.set('request.source', 'SRA')
 		.set('request.note', 'SRA')
@@ -41,7 +41,7 @@ var setupBond = ()=>
 		});
 // }}}
 
-describe.skip('request() - Bond specific', function() {
+describe.only('request() - Bond specific', function() {
 
 	var er;
 	before('init sraExlibrisRequest object', ()=> er = setupBond());
