@@ -3,15 +3,18 @@
 * Bond requires a certain request format (citation_type='BK' for books, 'CR' for everything else), complete rules in the validator
 */
 
+var _ = require('lodash');
 var expect = require('chai').expect;
 var mlog = require('mocha-logger');
 var reflib = require('reflib');
 var sraExlibrisRequest = require('..');
+var util = require('util');
 
 // Bond config {{{
 var setupBond = ()=>
 	new sraExlibrisRequest()
 		.set(require('./config'))
+		.set('exlibris.resourceRequestRetry', 1) // Only attempt once
 		.set('debug.titleMangle', title => `[SRA TEST ${(new Date).toISOString()} - LIVE-1] ${title}`)
 		.set('debug.execRequest', true)
 		.set('request.source', 'SRA')
@@ -37,11 +40,16 @@ var setupBond = ()=>
 				eref.format = 'DIGITAL';
 				eref.citation_type = 'CR';
 			}
+
 			return true;
-		});
+		})
+			.on('requestRetry', (ref, attempt, tryAgainInTimeout) => mlog.log(`request refused (attempt #${attempt}) for "${ref.title}" retry in ${tryAgainInTimeout}ms`))
+			.on('requestFailed', (ref, attempt) => mlog.log(`request completely failed (after #${attempt} attempts) for "${ref.title}" - giving up`))
+			.on('requestSucceed', (ref, attempt) => mlog.log(`request success for "${ref.title}"`))
+			.on('requestError', (ref, err) => mlog.log(`request error for "${ref.title}" - ${err.toString()} ` + (err.text ? `(has response text: "${err.text}")` : '(no response reason given)')))
 // }}}
 
-describe.only('request() - Bond specific', function() {
+describe('request() - Bond specific', function() {
 
 	var er;
 	before('init sraExlibrisRequest object', ()=> er = setupBond());
@@ -58,30 +66,40 @@ describe.only('request() - Bond specific', function() {
 	it('should make a sample request (execRequest = false)', function(done) {
 		this.timeout(30 * 1000);
 
-		er
-			.request(refs[0], {debug: {execRequest: false}}, function(err, res) {
-				expect(err).to.be.not.ok;
-				expect(res).to.be.deep.equal({id: 'FAKE', response: 'execRequest is disabled!'});
-
-				done();
-			})
-			.on('requestRetry', (ref, attempt, tryAgainInTimeout) => mlog.log(`request failed (attempt #${attempt}) for "${ref.title}" retry in ${tryAgainInTimeout}ms`))
+		er.request(_.sample(refs), {debug: {execRequest: false}}, function(err, res) {
+			expect(err).to.be.not.ok;
+			expect(res).to.be.deep.equal({id: 'FAKE', response: 'execRequest is disabled!'});
+			done();
+		})
 	});
 
-	it('should make a request for one reference', function(done) {
+	it('should make a request for one reference (book)', function(done) {
 		this.timeout(30 * 1000);
 
-		er
-			.request(refs.filter(r => r.type == 'book')[0], function(err, res) {
-				expect(err).to.be.not.ok;
-				done();
-			})
-			.on('requestRetry', (ref, attempt, tryAgainInTimeout) => mlog.log(`request failed (attempt #${attempt}) for "${ref.title}" retry in ${tryAgainInTimeout}ms`))
+		var ref = _(refs).filter(r => r.type == 'book').sample();
+		var ref = _(refs).filter(r => r.type == 'book').get(12);
+
+		er.request(ref, function(err, res) {
+			expect(err).to.be.not.ok;
+			done();
+		})
+	});
+
+	it('should make a request for one reference (digital)', function(done) {
+		this.timeout(30 * 1000);
+
+		var ref = _(refs).filter(r => r.type != 'book').sample();
+		var ref = _(refs).filter(r => r.type != 'book').get(10);
+
+		er.request(ref, function(err, res) {
+			expect(err).to.be.not.ok;
+			done();
+		})
 	});
 
 });
 
-describe('requestAll() - Bond specific', function() {
+describe.skip('requestAll() - Bond specific', function() {
 
 	var er;
 	before('init sraExlibrisRequest object', ()=> er = setupBond());
@@ -99,16 +117,10 @@ describe('requestAll() - Bond specific', function() {
 	it('should make a request for all references', function(done) {
 		this.timeout(60 * 60 * 1000);
 
-		er
-			.requestAll(refs, function(err, res) {
-				expect(err).to.be.not.ok;
-				done();
-			})
-			.on('requestRetry', (ref, attempt, tryAgainInTimeout) => mlog.log(`request refused (attempt #${attempt}) for "${ref.title}" retry in ${tryAgainInTimeout}ms`))
-			.on('requestFailed', (ref, attempt) => mlog.log(`request completely failed (after #${attempt} attempts) for "${ref.title}" - giving up`))
-			.on('requestSucceed', (ref, attempt) => mlog.log(`request success for "${ref.title}"`))
-			.on('requestError', (ref, err) => mlog.log(`request error for "${ref.title}" - ${err.toString()} ` + (err.text ? `(has response text: "${err.text}")` : '(no response reason given)')))
-
+		er.requestAll(refs, function(err, res) {
+			expect(err).to.be.not.ok;
+			done();
+		})
 	});
 
 });
