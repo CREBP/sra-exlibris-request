@@ -74,7 +74,7 @@ describe('request() - Bond specific', function() {
 	});
 
 	it('should make a request for one reference (book)', function(done) {
-		this.timeout(30 * 1000);
+		this.timeout(120 * 1000);
 
 		var ref = _(refs).filter(r => r.type == 'book').sample();
 		var ref = _(refs).filter(r => r.type == 'book').get(12);
@@ -85,8 +85,8 @@ describe('request() - Bond specific', function() {
 		})
 	});
 
-	it('should make a request for one reference (digital)', function(done) {
-		this.timeout(30 * 1000);
+	it.skip('should make a request for one reference (digital)', function(done) {
+		this.timeout(120 * 1000);
 
 		var ref = _(refs).filter(r => r.type != 'book').sample();
 		var ref = _(refs).filter(r => r.type != 'book').get(10);
