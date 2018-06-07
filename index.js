@@ -88,15 +88,15 @@ function ExlibrisRequest(settings) {
 
 
 	/**
-	* Run all provided references via request()
+	* Make a single request
 	* @param {Object} ref The Reflib reference object to process
 	* @param {Object} [options] Additional overriding options to use (otherwise `settings` is used)
 	* @param {function} [cb] The callback to run on completion
 	* @return {Object} This chainable object
-	* @fires requestSucceed Event fired when a request succeeded. Called as ({ref, attempt})
-	* @fires requestRetry Event fired when a request fails but will be retried. Called as ({ref, attempt, tryAgainInTimeout})
-	* @fires requestFailed Event fired when a request fails after exhausing the number of retries. Called as ({ref, attempts})
-	* @fires requestError Event fired when a request is completely rejected by the server. Called as ({ref, err})
+	* @fires requestSucceed Event fired when a request succeeded. Called as (ref, attempt)
+	* @fires requestRetry Event fired when a request fails but will be retried. Called as (ref, attempt, tryAgainInTimeout)
+	* @fires requestFailed Event fired when a request fails after exhausing the number of retries. Called as (ref, attempts)
+	* @fires requestError Event fired when a request is completely rejected by the server. Called as (ref, err)
 	*/
 	er.request = argy('object [object] [function]', function(ref, options, cb) {
 		var settings = _.defaultsDeep(options, er.settings);
