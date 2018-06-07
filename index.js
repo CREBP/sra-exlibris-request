@@ -77,6 +77,17 @@ function ExlibrisRequest(settings) {
 
 
 	/**
+	* Field definitions and the defaults to use if no value is provided
+	* This is a workaround for systems where certain fields are marked as mandatory (e.g. pages) but we do not have any data to provide
+	* @var {Object}
+	*/
+	er.mandatoryFields = {
+		authors: '?',
+		pages: '?',
+	};
+
+
+	/**
 	* Run all provided references via request()
 	* @param {Object} ref The Reflib reference object to process
 	* @param {Object} [options] Additional overriding options to use (otherwise `settings` is used)
@@ -99,6 +110,8 @@ function ExlibrisRequest(settings) {
 			// Convert the ref into a valid exlibris resource {{{
 			.then('resource', function(next) {
 				var res = {title: ''};
+
+				// Translate fields from Reflib -> Exlibris
 				_.forEach(ref, (v, k) => {
 					if (!er.reflibExlibrisTranslations[k]) {
 						return; // Unknown field in the reflib reference
@@ -108,6 +121,12 @@ function ExlibrisRequest(settings) {
 						res[er.reflibExlibrisTranslations[k]] = v;
 					}
 				});
+
+				// Force fields to have a value if they don't already
+				_.forEach(er.mandatoryFields, (v, k) => {
+					if (!ref[k]) ref[k] = v;
+				});
+
 				next(null, res);
 			})
 			// }}}
