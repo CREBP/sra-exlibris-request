@@ -5,9 +5,14 @@ var exlibris = require('exlibris');
 var events = require('events');
 var util = require('util');
 
+var fs = require('fs');
+var path = require('path');
+var Handlebars = require('handlebars');
+
 function ExlibrisRequest(settings) {
 	var er = this;
 	er.cacheContents = {}; // In-memory default cache
+	er.failedRequests = []; // Array to store failed requests for email
 
 	er.settings = _.defaults(settings, {
 		exlibris: {
@@ -31,6 +36,7 @@ function ExlibrisRequest(settings) {
 			cacheGet: email => er.cacheContents[email],
 			cacheSet: (email, obj) => er.cacheContents[email] = obj,
 		},
+		template: 'failed-requests.hbs', // Template to send email listing failed requests
 	});
 
 
@@ -82,8 +88,12 @@ function ExlibrisRequest(settings) {
 	* @var {Object}
 	*/
 	er.mandatoryFields = {
-		authors: '?',
-		pages: '?',
+		title: 'N.A.',
+		jorunal: 'N.A.',
+		authors: 'N.A.',
+		volume: 'N.A.',
+		number: 'N.A.',
+		pages: 'N.A.'
 	};
 
 
@@ -188,7 +198,9 @@ function ExlibrisRequest(settings) {
 				// Wrap the actual request in a function that we can retry until we're exhausted
 				// For some reason ExLibris will randomly reject requests even if their own internal setting is set to high thoughput, so its neccessary to deal with this weirdness by retrying until we're successful with some exponencial backoff
 				var attemptRequest = ()=> {
-					if (!settings.debug.execRequest) return next(null, {id: 'FAKE', response: 'execRequest is disabled!'});
+					if (!settings.debug.execRequest) return next('Forced fail')// next(null, {id: 'FAKE', response: 'execRequest is disabled!'});
+
+					console.log(this.resource);
 
 					this.exlibris.resources.request(_.assign({}, this.resource, settings.request), this.user, settings.request, (err, res) => {
 						if (err && err.status == 400 && !err.text) {
@@ -215,7 +227,11 @@ function ExlibrisRequest(settings) {
 			// }}}
 			// End {{{
 			.end(function(err) {
-				if (err) return cb(err);
+				if (err) {
+					// Push failed resource to failed requests for email
+					er.failedRequests.push(this.resource);
+					return cb(err);
+				}
 				cb(null, this.response);
 			});
 			// }}}
@@ -240,6 +256,12 @@ function ExlibrisRequest(settings) {
 				er.request(ref, settings, nextRef);
 			})
 			.end(cb);
+
+		// Open template file
+		var source = fs.readFileSync(path.join(__dirname, 'password-reset.hbs'), 'utf8');
+		// Create email generator
+		var template = Handlebars.compile(source);
+		// TODO use mailgun or nodemail to send email
 
 		return this;
 	});

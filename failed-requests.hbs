@@ -1,0 +1,14 @@
+<table style="width:100%">
+  <tr>
+    <th>Index</th>
+    <th>Request Title</th>
+    <th>Request Author</th> 
+  </tr>
+  {{#each request}}
+  <tr>
+    <td>{{@index}}</td>
+    <td>{{this.title}}</td>
+    <td>{{this.author}}</td> 
+  </tr>
+  {{/each}}
+</table>
