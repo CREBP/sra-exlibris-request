@@ -258,7 +258,7 @@ function ExlibrisRequest(settings) {
 			.end(cb);
 
 		// Open template file
-		var source = fs.readFileSync(path.join(__dirname, 'password-reset.hbs'), 'utf8');
+		var source = fs.readFileSync(path.join(__dirname, 'failed-requests.hbs'), 'utf8');
 		// Create email generator
 		var template = Handlebars.compile(source);
 		// TODO use mailgun or nodemail to send email
