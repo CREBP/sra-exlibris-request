@@ -5,9 +5,7 @@ var exlibris = require('exlibris');
 var events = require('events');
 var util = require('util');
 
-var fs = require('fs');
-var path = require('path');
-var Handlebars = require('handlebars');
+var send_failedRequests = require('./send_mail/failedRequests')
 
 function ExlibrisRequest(settings) {
 	var er = this;
@@ -79,6 +77,7 @@ function ExlibrisRequest(settings) {
 		year: 'year',
 		language: 'language',
 		authors: (ref, eref) => eref.author = ref.authors.join(', '),
+		urls: (ref, eref) => eref.source = ref.urls.join(', '), // URL/s to provided resource
 	};
 
 
@@ -89,10 +88,10 @@ function ExlibrisRequest(settings) {
 	*/
 	er.mandatoryFields = {
 		title: 'N.A.',
-		jorunal: 'N.A.',
-		authors: 'N.A.',
+		journal_title: 'N.A.',
+		author: 'N.A.',
 		volume: 'N.A.',
-		number: 'N.A.',
+		issue: 'N.A.',
 		pages: 'N.A.'
 	};
 
@@ -126,7 +125,7 @@ function ExlibrisRequest(settings) {
 					if (!er.reflibExlibrisTranslations[k]) {
 						return; // Unknown field in the reflib reference
 					} else if (_.isFunction(er.reflibExlibrisTranslations[k])) { // Run via filter and return result
-						var ret = er.reflibExlibrisTranslations[k](ref, res);
+						var ret = er.reflibExlibrisTranslations[k](ref, res);  // Call by reference to mutate res
 					} else { // Key -> Key mapping
 						res[er.reflibExlibrisTranslations[k]] = v;
 					}
@@ -134,7 +133,7 @@ function ExlibrisRequest(settings) {
 
 				// Force fields to have a value if they don't already
 				_.forEach(er.mandatoryFields, (v, k) => {
-					if (!ref[k]) ref[k] = v;
+					if (!res[k]) res[k] = v;
 				});
 
 				next(null, res);
@@ -198,9 +197,10 @@ function ExlibrisRequest(settings) {
 				// Wrap the actual request in a function that we can retry until we're exhausted
 				// For some reason ExLibris will randomly reject requests even if their own internal setting is set to high thoughput, so its neccessary to deal with this weirdness by retrying until we're successful with some exponencial backoff
 				var attemptRequest = ()=> {
-					if (!settings.debug.execRequest) return next('Forced fail')// next(null, {id: 'FAKE', response: 'execRequest is disabled!'});
-
-					console.log(this.resource);
+					if (!settings.debug.execRequest) {
+						er.failedRequests.push(this.resource);
+						return next(null, {id: 'FAKE', response: 'execRequest is disabled!'});
+					}
 
 					this.exlibris.resources.request(_.assign({}, this.resource, settings.request), this.user, settings.request, (err, res) => {
 						if (err && err.status == 400 && !err.text) {
@@ -255,13 +255,11 @@ function ExlibrisRequest(settings) {
 			.forEach(refs, function(nextRef, ref) {
 				er.request(ref, settings, nextRef);
 			})
-			.end(cb);
-
-		// Open template file
-		var source = fs.readFileSync(path.join(__dirname, 'failed-requests.hbs'), 'utf8');
-		// Create email generator
-		var template = Handlebars.compile(source);
-		// TODO use mailgun or nodemail to send email
+			.end(() => {
+				// Send email with failed requests
+				if(er.failedRequests.length > 0) send_failedRequests(er.settings.user, er.failedRequests)
+				cb()
+			});
 
 		return this;
 	});
