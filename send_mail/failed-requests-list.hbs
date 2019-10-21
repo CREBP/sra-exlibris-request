@@ -1,8 +1,11 @@
 <p>Request to bond university library recieved.</p>
-<p>The following requests were unable to be automatically processed, please submit manually:</p>
-<a href="https://library.bond.edu.au/using-library/borrowing-access/document-delivery">Document Delivery Guide</a>
-<br>
+<p><b>{{numSuccess}}</b> out of <b>{{numRequests}}</b> article requests were successfully submitted.</p>
+<p>
+  The following requests were unable to be automatically processed, please submit manually:<br>
+  <a href="https://library.bond.edu.au/using-library/borrowing-access/document-delivery">Document Delivery Guide</a>
+</p>
 
+<b>Failed Articles:</b>
 {{#list failedRequests}}
   {{this}}
 {{/list}}

@@ -11,6 +11,7 @@ function ExlibrisRequest(settings) {
 	var er = this;
 	er.cacheContents = {}; // In-memory default cache
 	er.failedRequests = []; // Array to store failed requests for email
+	er.totalRequests = 0;
 
 	er.settings = _.defaults(settings, {
 		exlibris: {
@@ -136,6 +137,9 @@ function ExlibrisRequest(settings) {
 					if (!res[k]) res[k] = v;
 				});
 
+				// Add article to total count
+				er.totalRequests++;
+
 				next(null, res);
 			})
 			// }}}
@@ -259,7 +263,7 @@ function ExlibrisRequest(settings) {
 			})
 			.end(() => {
 				// Send email with failed requests
-				if(er.failedRequests.length > 0) send_failedRequests(er.settings.user, er.failedRequests)
+				if(er.failedRequests.length > 0) send_failedRequests(er.settings.user, er.failedRequests, er.totalRequests)
 				cb()
 			});
 
