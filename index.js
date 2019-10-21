@@ -198,6 +198,7 @@ function ExlibrisRequest(settings) {
 				// For some reason ExLibris will randomly reject requests even if their own internal setting is set to high thoughput, so its neccessary to deal with this weirdness by retrying until we're successful with some exponencial backoff
 				var attemptRequest = ()=> {
 					if (!settings.debug.execRequest) {
+						this.resource.error = "Exec request disabled"
 						er.failedRequests.push(this.resource);
 						return next(null, {id: 'FAKE', response: 'execRequest is disabled!'});
 					}
@@ -229,6 +230,7 @@ function ExlibrisRequest(settings) {
 			.end(function(err) {
 				if (err) {
 					// Push failed resource to failed requests for email
+					this.resource.error = err
 					er.failedRequests.push(this.resource);
 					return cb(err);
 				}

@@ -15,7 +15,7 @@ var setupBond = ()=>
 	new sraExlibrisRequest()
 		.set(require('./config'))
 		.set('exlibris.resourceRequestRetry', 1) // Only attempt once
-		.set('debug.titleMangle', title => `[SRA TEST ${(new Date).toISOString()} - LIVE-1] ${title}`)
+		// .set('debug.titleMangle', title => `[SRA TEST ${(new Date).toISOString()} - LIVE-1] ${title}`)
 		.set('debug.execRequest', true)
 		.set('request.source', 'SRA')
 		.set('request.note', 'SRA')
