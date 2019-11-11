@@ -73,4 +73,14 @@ describe('requestAll() - Custom Bond', function() {
 		})
 	});
 
+	// Only run this for live testing with real requests
+	it.skip('should make a live request for all references', function(done) {
+		this.timeout(60 * 60 * 1000);
+
+		er.requestAll(refs, function(err, res) {
+			expect(err).to.be.not.ok;
+			done();
+		})
+	});
+
 });

@@ -8,12 +8,14 @@
     <th>Index</th>
     <th>Request Title</th>
     <th>Request Author/s</th> 
+    <th>Request Year</th>
   </tr>
   {{#each failedRequests}}
   <tr>
     <td>{{@index}}</td>
     <td>{{this.title}}</td>
     <td>{{this.author}}</td> 
+    <td>{{this.year}}</td> 
   </tr>
   {{/each}}
 </table>
