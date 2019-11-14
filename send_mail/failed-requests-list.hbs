@@ -5,7 +5,16 @@
   <a href="https://library.bond.edu.au/using-library/borrowing-access/document-delivery">Document Delivery Guide</a>
 </p>
 
+{{#if failedRequests}}
 <b>Failed Articles:</b>
 {{#list failedRequests}}
   {{this}}
 {{/list}}
+{{/if}}
+
+{{#if successfulRequests}}
+<b>These articles were successfully submitted, no further action required.<br>Successful Articles:</b>
+{{#list successfulRequests}}
+  {{this}}
+{{/list}}
+{{/if}}

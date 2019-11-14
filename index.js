@@ -11,6 +11,7 @@ function ExlibrisRequest(settings) {
 	var er = this;
 	er.cacheContents = {}; // In-memory default cache
 	er.failedRequests = []; // Array to store failed requests for email
+	er.successfulRequests = []; // Array to store successful requests for email
 	er.totalRequests = 0;
 
 	er.settings = _.defaults(settings, {
@@ -88,7 +89,7 @@ function ExlibrisRequest(settings) {
 	* @var {Object}
 	*/
 	er.mandatoryFields = {
-		title: 'N.A.',
+		title: 'Title Missing',
 		journal_title: 'N.A.',
 		author: 'N.A.',
 		volume: 'N.A.',
@@ -199,32 +200,36 @@ function ExlibrisRequest(settings) {
 			.then('response', function(next) {
 				var attempt = 0;
 				// Wrap the actual request in a function that we can retry until we're exhausted
-				// For some reason ExLibris will randomly reject requests even if their own internal setting is set to high thoughput, so its neccessary to deal with this weirdness by retrying until we're successful with some exponencial backoff
+				// For some reason ExLibris will randomly reject requests even if their own internal setting is set to high thoughput, so its neccessary to deal with this weirdness by retrying until we're successful with some exponential backoff
 				var attemptRequest = ()=> {
 					if (!settings.debug.execRequest) {
 						this.resource.error = "Exec request disabled"
 						er.failedRequests.push(this.resource);
-						return next(null, {id: 'FAKE', response: 'execRequest is disabled!'});
+						er.emit('requestSucceed', this.resource, attempt);
+						next(null, {id: 'FAKE', response: 'execRequest is disabled!'});
 					}
-
-					this.exlibris.resources.request(_.assign({}, this.resource, settings.request), this.user, settings.request, (err, res) => {
-						if (err && err.status == 400 && !err.text) {
-							if (++attempt < settings.exlibris.resourceRequestRetry) { // Errored but we're still below retry threshold
-								var tryAgainInTimeout = settings.exlibris.resourceRequestRetryDelay(attempt);
-								er.emit('requestRetry', this.resource, attempt, tryAgainInTimeout);
-								setTimeout(()=> attemptRequest(), tryAgainInTimeout);
+					// Else live requests are enabled
+					else {
+						this.exlibris.resources.request(_.assign({}, this.resource, settings.request), this.user, settings.request, (err, res) => {
+							if (err && err.status == 400 && !err.text) {
+								if (++attempt < settings.exlibris.resourceRequestRetry) { // Errored but we're still below retry threshold
+									var tryAgainInTimeout = settings.exlibris.resourceRequestRetryDelay(attempt);
+									er.emit('requestRetry', this.resource, attempt, tryAgainInTimeout);
+									setTimeout(()=> attemptRequest(), tryAgainInTimeout);
+								} else {
+									er.emit('requestFailed', this.resource, attempt);
+									next(`Failed after ${attempt} attempts - ${err.toString()}`);
+								}
+							} else if (err) {
+								er.emit('requestError', this.resource, err);
+								next(err);
 							} else {
-								er.emit('requestFailed', this.resource, attempt);
-								next(`Failed after ${attempt} attempts - ${err.toString()}`);
+								er.successfulRequests.push(this.resource)
+								er.emit('requestSucceed', this.resource, attempt);
+								next(null, res);
 							}
-						} else if (err) {
-							er.emit('requestError', this.resource, err);
-							next(err);
-						} else {
-							er.emit('requestSucceed', this.resource, attempt);
-							next(null, res);
-						}
-					});
+						});
+					}
 				};
 
 				attemptRequest();
@@ -263,7 +268,7 @@ function ExlibrisRequest(settings) {
 			})
 			.end(() => {
 				// Send email with failed requests
-				if(er.failedRequests.length > 0) send_failedRequests(er.settings.user, er.failedRequests, er.totalRequests)
+				send_failedRequests(er.settings.user, er.failedRequests, er.totalRequests, er.successfulRequests)
 				cb()
 			});
 

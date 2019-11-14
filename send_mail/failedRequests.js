@@ -12,7 +12,8 @@ Handlebars.registerHelper('list', function(items, options) {
     out += "<li><b>Title:</b> " + options.fn(items[i].title);
     out += "<br><b>Author/s:</b> " + options.fn(items[i].author); 
     out += "<br><b>Year:</b> " + options.fn(items[i].year);
-    out += "<br><i>Reason for failure:</i> " + items[i].error + "<br><br></li>";
+    if(items[i].error) out += "<br><i>Reason for failure:</i> " + items[i].error;
+    out += "<br><br></li>";
   }
 
   return out + "</ol>";
@@ -32,8 +33,8 @@ var options = (email, locals) => {
   };
 };
 
-module.exports = (user, failedRequests, numRequests) => {
+module.exports = (user, failedRequests, numRequests, successfulRequests) => {
   // console.log("Failed Requests: ")
   // console.log(failedRequests)
-  return sendMail(options(user.email, { "failedRequests": failedRequests, "numRequests": numRequests, "numSuccess": numRequests-failedRequests.length }));
+  return sendMail(options(user.email, { "failedRequests": failedRequests, "successfulRequests": successfulRequests, "numRequests": numRequests, "numSuccess": successfulRequests.length }));
 }

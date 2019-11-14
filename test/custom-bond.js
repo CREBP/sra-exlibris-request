@@ -64,7 +64,7 @@ describe('requestAll() - Custom Bond', function() {
 		});
 	});
 
-	it('should make a request for all references (execRequest = false)', function(done) {
+	it.only('should make a request for all references (execRequest = false)', function(done) {
 		this.timeout(60 * 60 * 1000);
 
 		er.requestAll(refs, {debug: {execRequest: false}}, function(err, res) {
@@ -74,7 +74,7 @@ describe('requestAll() - Custom Bond', function() {
 	});
 
 	// Only run this for live testing with real requests
-	it.only('should make a live request for all references', function(done) {
+	it.skip('should make a live request for all references', function(done) {
 		this.timeout(60 * 60 * 1000);
 
 		er.requestAll(refs, function(err, res) {
