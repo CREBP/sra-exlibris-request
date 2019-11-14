@@ -14,7 +14,7 @@ var util = require('util');
 var setupBond = ()=>
 	new sraExlibrisRequest()
 		.set(require('./config'))
-		.set('exlibris.resourceRequestRetry', 1) // Only attempt once
+		.set('exlibris.resourceRequestRetry', 3) // Only attempt three times
 		// .set('debug.titleMangle', title => `[SRA TEST ${(new Date).toISOString()} - LIVE-1] ${title}`)
 		.set('debug.execRequest', true)
 		.set('request.source', 'SRA')
@@ -64,7 +64,7 @@ describe('requestAll() - Custom Bond', function() {
 		});
 	});
 
-	it.only('should make a request for all references (execRequest = false)', function(done) {
+	it('should make a request for all references (execRequest = false)', function(done) {
 		this.timeout(60 * 60 * 1000);
 
 		er.requestAll(refs, {debug: {execRequest: false}}, function(err, res) {
@@ -74,7 +74,7 @@ describe('requestAll() - Custom Bond', function() {
 	});
 
 	// Only run this for live testing with real requests
-	it.skip('should make a live request for all references', function(done) {
+	it.only('should make a live request for all references', function(done) {
 		this.timeout(60 * 60 * 1000);
 
 		er.requestAll(refs, function(err, res) {

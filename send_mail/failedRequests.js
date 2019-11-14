@@ -9,16 +9,10 @@ Handlebars.registerHelper('list', function(items, options) {
   var out = "<ol>";
 
   for(var i=0, l=items.length; i<l; i++) {
-    if (items[i].title != "N.A.")
-      out = out + "<li><b>Title:</b> " + options.fn(items[i].title) + "<br><i>Reason for failure:</i> " + items[i].error + "</li>";
-    else if(items[i].doi)
-      out = out + "<li><b>DOI:</b> " + options.fn(items[i].doi) + "<br><i>Reason for failure:</i> " + items[i].error + "</li>";
-    else if (items[i].author != "N.A.")
-      out = out + "<li><b>Author/s:</b> " + options.fn(items[i].author) + "<br><i>Reason for failure:</i> " + items[i].error + "</li>"; 
-    else if(items[i].source)
-      out = out + "<li><b>URL/s:</b> " + options.fn(items[i].source) + "<br><i>Reason for failure:</i> " + items[i].error + "</li>";
-    else
-      out = out + "<li>Article Title, DOI, Author and URL not found</li>";
+    out += "<li><b>Title:</b> " + options.fn(items[i].title);
+    out += "<br><b>Author/s:</b> " + options.fn(items[i].author); 
+    out += "<br><b>Year:</b> " + options.fn(items[i].year);
+    out += "<br><i>Reason for failure:</i> " + items[i].error + "<br><br></li>";
   }
 
   return out + "</ol>";
