@@ -79,7 +79,7 @@ function ExlibrisRequest(settings) {
 		year: 'year',
 		language: 'language',
 		authors: (ref, eref) => eref.author = ref.authors.join('; '),
-		urls: (ref, eref) => eref.note = ref.urls.join(' '), // URL/s to provided resource
+		urls: (ref, eref) => eref.bib_note = ref.urls.join(' '), // URL/s to provided resource
 	};
 
 
