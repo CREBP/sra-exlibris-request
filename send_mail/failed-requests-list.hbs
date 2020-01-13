@@ -1,11 +1,11 @@
 <p>Request to bond university library received.</p>
 <p><b>{{numSuccess}}</b> out of <b>{{numRequests}}</b> article requests were successfully submitted.</p>
+
+{{#if failedRequests}}
 <p>
   The following requests were unable to be automatically processed, please submit manually:<br>
   <a href="https://library.bond.edu.au/using-library/borrowing-access/document-delivery">Document Delivery Guide</a>
 </p>
-
-{{#if failedRequests}}
 <b>Failed Articles:</b>
 {{#list failedRequests}}
   {{this}}
