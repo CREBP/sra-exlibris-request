@@ -33,8 +33,8 @@ var options = (email, locals) => {
   };
 };
 
-module.exports = (user, failedRequests, numRequests, successfulRequests) => {
+module.exports = (mailgunapi, user, failedRequests, numRequests, successfulRequests) => {
   console.log("Failed Requests: ")
   console.log(failedRequests)
-  return sendMail(options(user.email, { "failedRequests": failedRequests, "successfulRequests": successfulRequests, "numRequests": numRequests, "numSuccess": successfulRequests.length }));
+  return sendMail(mailgunapi, options(user.email, { "failedRequests": failedRequests, "successfulRequests": successfulRequests, "numRequests": numRequests, "numSuccess": successfulRequests.length }));
 }

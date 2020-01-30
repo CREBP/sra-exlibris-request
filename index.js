@@ -268,7 +268,7 @@ function ExlibrisRequest(settings) {
 			})
 			.end(() => {
 				// Send email with failed requests
-				send_failedRequests(er.settings.user, er.failedRequests, er.totalRequests, er.successfulRequests)
+				send_failedRequests(er.settings.mailgun, er.settings.user, er.failedRequests, er.totalRequests, er.successfulRequests)
 				cb()
 			});
 
