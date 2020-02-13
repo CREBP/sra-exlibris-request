@@ -18,7 +18,6 @@ var setupBond = ()=>
 		// .set('debug.titleMangle', title => `[SRA TEST ${(new Date).toISOString()} - LIVE-1] ${title}`)
 		.set('debug.execRequest', true)
 		.set('request.source', 'SRA')
-		.set('request.note', 'SRA')
 		.set('validator', (ref, eref) => {
 			if (!ref.type) return 'No reference type specified';
 			if (ref.type == 'book') {
