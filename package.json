@@ -1,6 +1,6 @@
 {
   "name": "sra-exlibris-request",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "CREBP-SRA tool to request papers, books or other materials via ExLibris (Alma, Primo etc.)",
   "main": "index.js",
   "scripts": {
