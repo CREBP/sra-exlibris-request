@@ -1,6 +1,6 @@
 {
   "name": "sra-exlibris-request",
-  "version": "0.0.4",
+  "version": "1.0.1",
   "description": "CREBP-SRA tool to request papers, books or other materials via ExLibris (Alma, Primo etc.)",
   "main": "index.js",
   "scripts": {
@@ -21,6 +21,10 @@
     "research"
   ],
   "author": "Matt Carter <m@ttcarter.com>",
+  "contributors": [
+    "Matt Carter <m@ttcarter.com>",
+    "Connor Forbes"
+  ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/CREBP/sra-exlibris-request/issues"
@@ -29,8 +33,12 @@
   "dependencies": {
     "argy": "^1.3.1",
     "async-chainable": "^2.3.2",
-    "exlibris": "^1.0.4",
-    "lodash": "^4.17.10"
+    "exlibris": "^1.0.5",
+    "handlebars": "^4.1.2",
+    "lodash": "^4.17.10",
+    "mailgun-js": "^0.22.0",
+    "nodemailer": "^6.3.1",
+    "nodemailer-mailgun-transport": "^1.4.0"
   },
   "devDependencies": {
     "chai": "^4.1.2",

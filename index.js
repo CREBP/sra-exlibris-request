@@ -5,9 +5,14 @@ var exlibris = require('exlibris');
 var events = require('events');
 var util = require('util');
 
+var send_failedRequests = require('./send_mail/failedRequests')
+
 function ExlibrisRequest(settings) {
 	var er = this;
 	er.cacheContents = {}; // In-memory default cache
+	er.failedRequests = []; // Array to store failed requests for email
+	er.successfulRequests = []; // Array to store successful requests for email
+	er.totalRequests = 0;
 
 	er.settings = _.defaults(settings, {
 		exlibris: {
@@ -31,6 +36,7 @@ function ExlibrisRequest(settings) {
 			cacheGet: email => er.cacheContents[email],
 			cacheSet: (email, obj) => er.cacheContents[email] = obj,
 		},
+		template: 'failed-requests.hbs', // Template to send email listing failed requests
 	});
 
 
@@ -72,7 +78,8 @@ function ExlibrisRequest(settings) {
 		isbn: 'issn',
 		year: 'year',
 		language: 'language',
-		authors: (ref, eref) => eref.author = ref.authors.join(', '),
+		authors: (ref, eref) => eref.author = ref.authors.join('; '),
+		urls: (ref, eref) => eref.bib_note = ref.urls.join(' '), // URL/s to provided resource
 	};
 
 
@@ -82,8 +89,12 @@ function ExlibrisRequest(settings) {
 	* @var {Object}
 	*/
 	er.mandatoryFields = {
-		authors: '?',
-		pages: '?',
+		title: 'Title Missing',
+		journal_title: 'N.A.',
+		author: 'N.A.',
+		volume: 'N.A.',
+		issue: 'N.A.',
+		pages: 'N.A.'
 	};
 
 
@@ -116,7 +127,7 @@ function ExlibrisRequest(settings) {
 					if (!er.reflibExlibrisTranslations[k]) {
 						return; // Unknown field in the reflib reference
 					} else if (_.isFunction(er.reflibExlibrisTranslations[k])) { // Run via filter and return result
-						var ret = er.reflibExlibrisTranslations[k](ref, res);
+						var ret = er.reflibExlibrisTranslations[k](ref, res);  // Call by reference to mutate res
 					} else { // Key -> Key mapping
 						res[er.reflibExlibrisTranslations[k]] = v;
 					}
@@ -124,8 +135,11 @@ function ExlibrisRequest(settings) {
 
 				// Force fields to have a value if they don't already
 				_.forEach(er.mandatoryFields, (v, k) => {
-					if (!ref[k]) ref[k] = v;
+					if (!res[k]) res[k] = v;
 				});
+
+				// Add article to total count
+				er.totalRequests++;
 
 				next(null, res);
 			})
@@ -186,28 +200,36 @@ function ExlibrisRequest(settings) {
 			.then('response', function(next) {
 				var attempt = 0;
 				// Wrap the actual request in a function that we can retry until we're exhausted
-				// For some reason ExLibris will randomly reject requests even if their own internal setting is set to high thoughput, so its neccessary to deal with this weirdness by retrying until we're successful with some exponencial backoff
+				// For some reason ExLibris will randomly reject requests even if their own internal setting is set to high thoughput, so its neccessary to deal with this weirdness by retrying until we're successful with some exponential backoff
 				var attemptRequest = ()=> {
-					if (!settings.debug.execRequest) return next(null, {id: 'FAKE', response: 'execRequest is disabled!'});
-
-					this.exlibris.resources.request(_.assign({}, this.resource, settings.request), this.user, settings.request, (err, res) => {
-						if (err && err.status == 400 && !err.text) {
-							if (++attempt < settings.exlibris.resourceRequestRetry) { // Errored but we're still below retry threshold
-								var tryAgainInTimeout = settings.exlibris.resourceRequestRetryDelay(attempt);
-								er.emit('requestRetry', this.resource, attempt, tryAgainInTimeout);
-								setTimeout(()=> attemptRequest(), tryAgainInTimeout);
+					if (!settings.debug.execRequest) {
+						this.resource.error = "Exec request disabled"
+						er.failedRequests.push(this.resource);
+						er.emit('requestSucceed', this.resource, attempt);
+						next(null, {id: 'FAKE', response: 'execRequest is disabled!'});
+					}
+					// Else live requests are enabled
+					else {
+						this.exlibris.resources.request(_.assign({}, this.resource, settings.request), this.user, settings.request, (err, res) => {
+							if (err && err.status == 400 && !err.text) {
+								if (++attempt < settings.exlibris.resourceRequestRetry) { // Errored but we're still below retry threshold
+									var tryAgainInTimeout = settings.exlibris.resourceRequestRetryDelay(attempt);
+									er.emit('requestRetry', this.resource, attempt, tryAgainInTimeout);
+									setTimeout(()=> attemptRequest(), tryAgainInTimeout);
+								} else {
+									er.emit('requestFailed', this.resource, attempt);
+									next(`Failed after ${attempt} attempts - ${err.toString()}`);
+								}
+							} else if (err) {
+								er.emit('requestError', this.resource, err);
+								next(err);
 							} else {
-								er.emit('requestFailed', this.resource, attempt);
-								next(`Failed after ${attempt} attempts - ${err.toString()}`);
+								er.successfulRequests.push(this.resource)
+								er.emit('requestSucceed', this.resource, attempt);
+								next(null, res);
 							}
-						} else if (err) {
-							er.emit('requestError', this.resource, err);
-							next(err);
-						} else {
-							er.emit('requestSucceed', this.resource, attempt);
-							next(null, res);
-						}
-					});
+						});
+					}
 				};
 
 				attemptRequest();
@@ -215,7 +237,12 @@ function ExlibrisRequest(settings) {
 			// }}}
 			// End {{{
 			.end(function(err) {
-				if (err) return cb(err);
+				if (err) {
+					// Push failed resource to failed requests for email
+					this.resource.error = err
+					er.failedRequests.push(this.resource);
+					return cb(err);
+				}
 				cb(null, this.response);
 			});
 			// }}}
@@ -239,7 +266,11 @@ function ExlibrisRequest(settings) {
 			.forEach(refs, function(nextRef, ref) {
 				er.request(ref, settings, nextRef);
 			})
-			.end(cb);
+			.end(() => {
+				// Send email with failed requests
+				send_failedRequests(er.settings.mailgun, er.settings.user, er.failedRequests, er.totalRequests, er.successfulRequests)
+				cb()
+			});
 
 		return this;
 	});

@@ -1,0 +1,21 @@
+<p>Request to bond university library received.</p>
+<p>The following requests were unable to be processed, please submit manually:</p>
+<a href="https://library.bond.edu.au/using-library/borrowing-access/document-delivery">Document Delivery Guide</a>
+<br>
+
+<table style="width:100%;" border="5px">
+  <tr>
+    <th>Index</th>
+    <th>Request Title</th>
+    <th>Request Author/s</th> 
+    <th>Request Year</th>
+  </tr>
+  {{#each failedRequests}}
+  <tr>
+    <td>{{@index}}</td>
+    <td>{{this.title}}</td>
+    <td>{{this.author}}</td> 
+    <td>{{this.year}}</td> 
+  </tr>
+  {{/each}}
+</table>

@@ -14,11 +14,10 @@ var util = require('util');
 var setupBond = ()=>
 	new sraExlibrisRequest()
 		.set(require('./config'))
-		.set('exlibris.resourceRequestRetry', 1) // Only attempt once
-		.set('debug.titleMangle', title => `[SRA TEST ${(new Date).toISOString()} - LIVE-1] ${title}`)
+		.set('exlibris.resourceRequestRetry', 3) // Only attempt three times
+		// .set('debug.titleMangle', title => `[SRA TEST ${(new Date).toISOString()} - LIVE-1] ${title}`)
 		.set('debug.execRequest', true)
 		.set('request.source', 'SRA')
-		.set('request.note', 'SRA')
 		.set('validator', (ref, eref) => {
 			if (!ref.type) return 'No reference type specified';
 			if (ref.type == 'book') {
@@ -49,57 +48,7 @@ var setupBond = ()=>
 			.on('requestError', (ref, err) => mlog.log(`request error for "${ref.title}" - ${err.toString()} ` + (err.text ? `(has response text: "${err.text}")` : '(no response reason given)')))
 // }}}
 
-describe('request() - Bond specific', function() {
-
-	var er;
-	before('init sraExlibrisRequest object', ()=> er = setupBond());
-
-	var refs;
-	before('fetch example references', done => {
-		reflib.parseFile('./test/data/endnote-md.xml', function(err, res) {
-			if (err) return done(err);
-			refs = res;
-			done();
-		});
-	});
-
-	it('should make a sample request (execRequest = false)', function(done) {
-		this.timeout(30 * 1000);
-
-		er.request(_.sample(refs), {debug: {execRequest: false}}, function(err, res) {
-			expect(err).to.be.not.ok;
-			expect(res).to.be.deep.equal({id: 'FAKE', response: 'execRequest is disabled!'});	
-			done();
-		})
-	});
-
-	it('should make a request for one reference (book)', function(done) {
-		this.timeout(120 * 1000);
-
-		var ref = _(refs).filter(r => r.type == 'book').sample();
-		var ref = _(refs).filter(r => r.type == 'book').get(12);
-
-		er.request(ref, function(err, res) {
-			expect(err).to.be.not.ok;
-			done();
-		})
-	});
-
-	it.skip('should make a request for one reference (digital)', function(done) {
-		this.timeout(120 * 1000);
-
-		var ref = _(refs).filter(r => r.type != 'book').sample();
-		var ref = _(refs).filter(r => r.type != 'book').get(10);
-
-		er.request(ref, function(err, res) {
-			expect(err).to.be.not.ok;
-			done();
-		})
-	});
-
-});
-
-describe.skip('requestAll() - Bond specific', function() {
+describe('requestAll() - Custom Bond', function() {
 
 	var er;
 	before('init sraExlibrisRequest object', ()=> er = setupBond());
@@ -107,14 +56,24 @@ describe.skip('requestAll() - Bond specific', function() {
 	var refs;
 	before('fetch example references', function(done) {
 		this.timeout(30 * 1000);
-		reflib.parseFile('./test/data/endnote-md.xml', function(err, res) {
+		reflib.parseFile('./test/data/custom.xml', function(err, res) {
 			if (err) return done(err);
 			refs = res;
 			done();
 		});
 	});
 
-	it('should make a request for all references', function(done) {
+	it.only('should make a request for all references (execRequest = false)', function(done) {
+		this.timeout(60 * 60 * 1000);
+
+		er.requestAll(refs, {debug: {execRequest: false}}, function(err, res) {
+			expect(err).to.be.not.ok;
+			done();
+		})
+	});
+
+	// Only run this for live testing with real requests
+	it.skip('should make a live request for all references', function(done) {
 		this.timeout(60 * 60 * 1000);
 
 		er.requestAll(refs, function(err, res) {
