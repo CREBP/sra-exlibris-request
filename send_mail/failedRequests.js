@@ -33,8 +33,9 @@ var options = (email, locals) => {
   };
 };
 
-module.exports = (mailgunapi, user, failedRequests, numRequests, successfulRequests) => {
+module.exports = async (mailgunapi, user, failedRequests, numRequests, successfulRequests, callback) => {
   console.log("Failed Requests: ")
   console.log(failedRequests)
-  return sendMail(mailgunapi, options(user.email, { "failedRequests": failedRequests, "successfulRequests": successfulRequests, "numRequests": numRequests, "numSuccess": successfulRequests.length }));
+  let mailPromise = await sendMail(mailgunapi, options(user.email, { "failedRequests": failedRequests, "successfulRequests": successfulRequests, "numRequests": numRequests, "numSuccess": successfulRequests.length }));
+  return mailPromise;
 }

@@ -268,8 +268,17 @@ function ExlibrisRequest(settings) {
 			})
 			.end(() => {
 				// Send email with failed requests
-				send_failedRequests(er.settings.mailgun, er.settings.user, er.failedRequests, er.totalRequests, er.successfulRequests)
-				cb()
+				let emailPromise = send_failedRequests(er.settings.mailgun, er.settings.user, er.failedRequests, er.totalRequests, er.successfulRequests)
+				emailPromise.then((success) => {
+					if (success) {
+						console.log("Email succesfully dispatched")
+						cb()
+					} else {
+						console.log("Error sending email")
+						cb()
+					}
+				})
+				// cb()
 			});
 
 		return this;
